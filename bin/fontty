@@ -67,11 +67,13 @@ class Font {
         );
     } 
 
-    method preview() 
+    method preview($tty) 
     {
         my $id = $self->id();
 
-        my $cmd = "setfont $id";
+        my $c_arg = defined $tty ? " -C $tty" : '';
+
+        my $cmd = "setfont $id$c_arg";
         
         say $cmd;
         `$cmd`;
@@ -102,10 +104,19 @@ my %actions = (
     }
 );
 
-sub main 
+sub main ()
 { 
     my $font_path = DEFAULT_PATH;
-    GetOptions('dir=s' => \$font_path);
+    my $tty;
+    
+    GetOptions(
+        'dir=s' => \$font_path,
+        'tty=s' => \$tty,
+    );
+
+    my %opts = (
+        tty => $tty,
+    );
 
     my @fonts = path($font_path)->children(qr/\.gz$/);
 
@@ -127,34 +138,48 @@ sub main
 
     my ($action_name, @args) = @ARGV;
     $action_name //= 'list';
-    $action_name =~ s/$-+//;
-
     my $action = $actions{$action_name} // $actions{help};
 
-    $action->{sub}->(@args);
+    $action->{sub}->(\%opts, @args);
 }
 
-sub list 
+sub get_tty ($tty_nr) 
 {
-    my $select = Term::Choose->new();
+    my ($tty) = `who am i` =~ /tty(\d+)/;
+    $tty_nr //= $tty; 
+
+    return "/dev/tty$tty_nr" 
+        if $tty_nr;
+
+    return
+}
+
+sub list ($opts, @args)
+{
+    my $select = 
+        Term::Choose->new({
+            prompt => 'Please select',
+            color => 2,
+        });
+
     my $choice = $select->choose([sort keys %fonts]);
-    preview($choice) 
+
+    preview($opts, $choice) 
         if $choice;
 }
 
-sub help 
+sub help ($opts, @args)
 {
     say "Usage: fontpreview ACTION [ARGS]";
     say "The following actions are available:";
+
     for (sort keys %actions) {
         say "   *  $_: $actions{$_}->{description}";
     }
 }
 
-sub preview
+sub preview ($opts, $name, @args)
 {
-    my ($name) = @_;
-
     return say "Please provide a font name. Use `fontty list` to show installed fonts."
         unless $name;
 
@@ -176,11 +201,13 @@ sub preview
     }
 
     $font //= $fonts->[0];
+    
+    my $tty = get_tty($opts->{tty});
 
-    $font->preview();
+    $font->preview($tty);
 }
 
-sub test 
+sub test ($opts, @args)
 {
     package tests;
 
