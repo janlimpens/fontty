@@ -1,0 +1,187 @@
+#!/usr/bin/perl
+
+package fontpreview;
+use v5.38;
+use feature 'class';
+use strict; use warnings;
+no warnings qw(experimental::class);
+use Data::Printer;
+use Path::Tiny;
+
+class Font {
+  use Data::Printer;
+  field $name;
+  field $size;
+  field $filename :param;
+
+  ADJUST 
+  { ##no critic
+    my $fn = $filename;
+
+    # remove path and extension
+    $fn =~ s/^(?:.+\/)|\..+$//g;
+    
+    $fn =~ /^(?<name>\w+?)(?:[-_](?<size>.+))?$/mp;
+    $name = $+{name};
+    $size = $+{size};
+  }
+
+  method id() {
+    my $fn = $filename;
+    $fn =~ s/^(?:.+\/)|\..+$//g;
+    return $fn
+  }
+
+  method name() 
+  {
+    return $name
+  }
+
+  method size() 
+  {
+    return $size
+  }
+
+  method filename() 
+  {
+    return $filename
+  }
+
+  method stringify() 
+  {
+    return sprintf(
+      "Name: %s, size: %s (%s)", 
+      $name//'undef', 
+      $size//'undef', 
+      $filename
+    );
+  } 
+
+  method preview() 
+  {
+    my $id = $self->id();
+
+    my $cmd = "setfont $id";
+    
+    say $cmd;
+    `$cmd`;
+  }
+}
+
+my %fonts; # is a hashsh $name => [Font]
+
+my %actions = (
+  list => { 
+    sub => \&list,
+    description => 'lists all available fonts'
+  },
+  help => {
+    sub => \&help,
+    description => 'shows this information'
+  },
+  preview => {
+    sub => \&preview,
+    description => 'cycles through all fonts'
+  },
+);
+
+sub main 
+{ 
+  my $font_path = '/usr/share/kbd/consolefonts';
+
+  my @fonts = path($font_path)->children();
+
+  for my $filename (@fonts) {
+    my $font = Font->new(filename => $filename);
+    push $fonts{$font->name()}->@*, $font;
+  }
+
+  my ($action_name, @args) = @ARGV;
+  $action_name //= 'help';
+
+  my $action = $actions{$action_name} // $actions{help};
+
+  $action->{sub}->(@args);
+}
+
+sub list 
+{
+  say join ', ', sort keys %fonts;
+}
+
+sub help 
+{
+  say "Usage: fontpreview ACTION [ARGS]";
+  say "The following actions are available:";
+  for (keys %actions) {
+    say "$_: $actions{$_}->{description}";
+  }
+
+}
+
+sub preview
+{
+  my ($name) = @_;
+  my $fonts = $fonts{$name};
+  return say "Font $name is not installed" unless $fonts;
+
+  my $font;
+
+  if ($fonts->@* > 1) {
+    say "This font exists in these variations:";
+  
+    for (my $i = 1; $i <= $fonts->@*; $i ++) {
+      say "[$i] ". $fonts->[$i-1]->stringify();
+    }
+  
+    say "Press number to apply";
+  
+    my $number = <STDIN>; ##no critic
+    chomp $number;
+  
+    say "Not a valid number" && exit 0
+      if ($number !~ /^\d+$/ && $number > $fonts->@*);
+
+    $font = $fonts->[$number-1];
+  }
+
+  $font //= $fonts->[0];
+
+  $font->preview();
+}
+
+main();
+exit 1;
+# exit 1 unless caller();
+
+package tests;
+
+use Test2::V0;
+no warnings 'experimental::for_list';
+
+subtest construction_Font => sub 
+{
+  my %filenames = (
+      # '6x10-ISO8859-10.pcf.gz' => { name => '6x10-ISO8859', size => 10 },
+      # '5x8.pcf.gz' => { name => '5x8' },
+      # '5x7-KOI8-R.pcf.gz' => { name => '5x7-KOI8-R' },
+      # '6x13O-ISO8859-1.pcf.gz' => { name => '6x13O-ISO8859-1' },
+      'UniCyr_8x14.psf.gz' => { name => 'UniCyr', size => '8x14'}, 
+      'ter-216b.psf.gz' => { name => 'ter', size => '216b'}, 
+      'lat7a-14.psfu.gz' => { name => 'lat7a', size => '14'}, 
+      'arm8.fnt.g' => { name => 'arm8', size => undef},
+  );
+
+  for my ($filename, $expect) (%filenames)
+  {  
+    my $f = Font->new(filename => $filename);
+
+    is ( $f->name(), $expect->{name}, 'got the right name' ) || diag $filename;
+    is ($f->size(), $expect->{size}, 'got the right size') || diag $filename;
+  }
+};
+
+done_testing();
+
+
+1;
