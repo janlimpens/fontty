@@ -83,7 +83,7 @@ my %fonts; # is a hashsh $name => [Font]
 my %actions = (
   list => { 
     sub => \&list,
-    description => 'lists all available fonts and allows selection'
+    description => '[default] lists all available fonts and allows selection'
   },
   help => {
     sub => \&help,
@@ -91,7 +91,7 @@ my %actions = (
   },
   preview => {
     sub => \&preview,
-    description => 'arg: font name. switches to the font. If there are different sizes, it allows selection.'
+    description => '[arg: font name] switches to the font. If there are different sizes, it allows selection.'
   },
   test => {
     sub => \&test,
@@ -139,8 +139,8 @@ sub help
 {
   say "Usage: fontpreview ACTION [ARGS]";
   say "The following actions are available:";
-  for (keys %actions) {
-    say "$_: $actions{$_}->{description}";
+  for (sort keys %actions) {
+    say "   *  $_: $actions{$_}->{description}";
   }
 }
 
@@ -183,10 +183,6 @@ sub test
   subtest construction_Font => sub 
   {
     my %filenames = (
-        # '6x10-ISO8859-10.pcf.gz' => { name => '6x10-ISO8859', size => 10 },
-        # '5x8.pcf.gz' => { name => '5x8' },
-        # '5x7-KOI8-R.pcf.gz' => { name => '5x7-KOI8-R' },
-        # '6x13O-ISO8859-1.pcf.gz' => { name => '6x13O-ISO8859-1' },
         'UniCyr_8x14.psf.gz' => { name => 'UniCyr', size => '8x14'}, 
         'ter-216b.psf.gz' => { name => 'ter', size => '216b'}, 
         'lat7a-14.psfu.gz' => { name => 'lat7a', size => '14'}, 
