@@ -6,7 +6,9 @@ use feature 'class';
 use strict; use warnings;
 no warnings qw(experimental::class);
 use Data::Printer;
+use List::Util qw(first);
 use Path::Tiny;
+use Term::Choose;
 
 class Font {
   use Data::Printer;
@@ -81,7 +83,7 @@ my %actions = (
   },
   preview => {
     sub => \&preview,
-    description => 'cycles through all fonts'
+    description => 'arg: font name. switches to the font. If there are different sizes, it allows selection.'
   },
   test => {
     sub => \&test,
@@ -110,7 +112,11 @@ sub main
 
 sub list 
 {
-  say join ', ', sort keys %fonts;
+  my $select = Term::Choose->new();
+  my $choice = $select->choose([sort keys %fonts]);
+  preview($choice) 
+    if $choice;
+  # say join ', ', sort keys %fonts;
 }
 
 sub help 
@@ -126,27 +132,25 @@ sub help
 sub preview
 {
   my ($name) = @_;
+
+  return say "Please provide a font name. Use `fontty list` to show installed fonts."
+    unless $name;
+
   my $fonts = $fonts{$name};
-  return say "Font $name is not installed" unless $fonts;
+
+  return say "Font $name is not installed." 
+    unless $fonts;
 
   my $font;
 
   if ($fonts->@* > 1) {
-    say "This font exists in these variations:";
-  
-    for (my $i = 1; $i <= $fonts->@*; $i ++) {
-      say "[$i] ". $fonts->[$i-1]->stringify();
-    }
-  
-    say "Press number to apply";
-  
-    my $number = <STDIN>; ##no critic
-    chomp $number;
-  
-    say "Not a valid number" && exit 0
-      if ($number !~ /^\d+$/ && $number > $fonts->@*);
+    say "Select a size:";
 
-    $font = $fonts->[$number-1];
+    my $selection = Term::Choose->new();
+    
+    my $id = $selection->choose( [ map { $_->id() } $fonts->@* ] );
+
+    $font = first { $_->id() eq $id } $fonts->@*;
   }
 
   $font //= $fonts->[0];
