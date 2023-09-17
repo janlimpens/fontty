@@ -11,71 +11,71 @@ use Path::Tiny;
 use Term::Choose;
 
 class Font {
-  use Data::Printer;
-  field $name;
-  field $size;
-  field $filename :param;
+    use Data::Printer;
+    field $name;
+    field $size;
+    field $filename :param;
 
-  ADJUST 
-  { ##no critic
-    my $fn = $self->id();
-    
-    $fn =~ /^(?<name>\w+?)(?:[-_\.](?<size>.+))?$/mp;
+    ADJUST 
+    { ##no critic
+        my $fn = $self->id();
+        
+        $fn =~ /^(?<name>\w+?)(?:[-_\.](?<size>.+))?$/mp;
 
-    $name = $+{name};
-    $size = $+{size};
-  }
+        $name = $+{name};
+        $size = $+{size};
+    }
 
-  method id() {
-    my $fn = $filename;
-    
-    my @endings = qw(
-      .gz
-      .psf.gz
-      .psfu.gz
-      .fnt.gz
-    );
+    method id() {
+        my $fn = $filename;
+        
+        my @endings = qw(
+            .gz
+            .psf.gz
+            .psfu.gz
+            .fnt.gz
+        );
 
-    my $endings = join '|', @endings;
+        my $endings = join '|', @endings;
 
-    $fn =~ s/^(?:.+\/)|($endings)$//g;
-    return $fn
-  }
+        $fn =~ s/^(?:.+\/)|($endings)$//g;
+        return $fn
+    }
 
-  method name() 
-  {
-    return $name
-  }
+    method name() 
+    {
+        return $name
+    }
 
-  method size() 
-  {
-    return $size
-  }
+    method size() 
+    {
+        return $size
+    }
 
-  method filename() 
-  {
-    return $filename
-  }
+    method filename() 
+    {
+        return $filename
+    }
 
-  method stringify() 
-  {
-    return sprintf(
-      "Name: %s, size: %s (%s)", 
-      $name//'undef', 
-      $size//'undef', 
-      $filename
-    );
-  } 
+    method stringify() 
+    {
+        return sprintf(
+            "Name: %s, size: %s (%s)", 
+            $name//'undef', 
+            $size//'undef', 
+            $filename
+        );
+    } 
 
-  method preview() 
-  {
-    my $id = $self->id();
+    method preview() 
+    {
+        my $id = $self->id();
 
-    my $cmd = "setfont $id";
-    
-    say $cmd;
-    `$cmd`;
-  }
+        my $cmd = "setfont $id";
+        
+        say $cmd;
+        `$cmd`;
+    }
 }
 
 use Getopt::Long;
@@ -84,137 +84,137 @@ use constant DEFAULT_PATH => '/usr/share/kbd/consolefonts';
 my %fonts; # is a hashsh $name => [Font]
 
 my %actions = (
-  list => { 
-    sub => \&list,
-    description => '[default] lists all available fonts and allows selection'
-  },
-  help => {
-    sub => \&help,
-    description => 'shows this information'
-  },
-  preview => {
-    sub => \&preview,
-    description => '[arg: font name] switches to the font. If there are different sizes, it allows selection.'
-  },
-  test => {
-    sub => \&test,
-    description => 'runs the test suite',
-  }
+    list => { 
+        sub => \&list,
+        description => '[default] lists all available fonts and allows selection'
+    },
+    help => {
+        sub => \&help,
+        description => 'shows this information'
+    },
+    preview => {
+        sub => \&preview,
+        description => '[arg: font name] switches to the font. If there are different sizes, it allows selection.'
+    },
+    test => {
+        sub => \&test,
+        description => 'runs the test suite',
+    }
 );
 
 sub main 
 { 
-  my $font_path = DEFAULT_PATH;
-  GetOptions('dir=s' => \$font_path);
+    my $font_path = DEFAULT_PATH;
+    GetOptions('dir=s' => \$font_path);
 
-  my @fonts = path($font_path)->children(qr/\.gz$/);
+    my @fonts = path($font_path)->children(qr/\.gz$/);
 
-  return say "No fonts found at $font_path" 
-    unless @fonts;
+    return say "No fonts found at $font_path" 
+        unless @fonts;
 
-  for my $filename (@fonts) {
-    my $font = Font->new(filename => $filename);
-    push $fonts{$font->name()}->@*, $font;
-  }
-
-  for (keys %fonts) {
-    if (1 == $fonts{$_}->@*) {
-      my $font = $fonts{$_}->[0];
-      delete $fonts{$_};
-      $fonts{$font->id()} = [$font];
+    for my $filename (@fonts) {
+        my $font = Font->new(filename => $filename);
+        push $fonts{$font->name()}->@*, $font;
     }
-  }
 
-  my ($action_name, @args) = @ARGV;
-  $action_name //= 'list';
-  $action_name =~ s/$-+//;
+    for (keys %fonts) {
+        if (1 == $fonts{$_}->@*) {
+            my $font = $fonts{$_}->[0];
+            delete $fonts{$_};
+            $fonts{$font->id()} = [$font];
+        }
+    }
 
-  my $action = $actions{$action_name} // $actions{help};
+    my ($action_name, @args) = @ARGV;
+    $action_name //= 'list';
+    $action_name =~ s/$-+//;
 
-  $action->{sub}->(@args);
+    my $action = $actions{$action_name} // $actions{help};
+
+    $action->{sub}->(@args);
 }
 
 sub list 
 {
-  my $select = Term::Choose->new();
-  my $choice = $select->choose([sort keys %fonts]);
-  preview($choice) 
-    if $choice;
+    my $select = Term::Choose->new();
+    my $choice = $select->choose([sort keys %fonts]);
+    preview($choice) 
+        if $choice;
 }
 
 sub help 
 {
-  say "Usage: fontpreview ACTION [ARGS]";
-  say "The following actions are available:";
-  for (sort keys %actions) {
-    say "   *  $_: $actions{$_}->{description}";
-  }
+    say "Usage: fontpreview ACTION [ARGS]";
+    say "The following actions are available:";
+    for (sort keys %actions) {
+        say "   *  $_: $actions{$_}->{description}";
+    }
 }
 
 sub preview
 {
-  my ($name) = @_;
+    my ($name) = @_;
 
-  return say "Please provide a font name. Use `fontty list` to show installed fonts."
-    unless $name;
+    return say "Please provide a font name. Use `fontty list` to show installed fonts."
+        unless $name;
 
-  my $fonts = $fonts{$name};
+    my $fonts = $fonts{$name};
 
-  return say "Font $name is not installed." 
-    unless $fonts;
+    return say "Font $name is not installed." 
+        unless $fonts;
 
-  my $font;
+    my $font;
 
-  if ($fonts->@* > 1) {
-    say "Select a size:";
+    if ($fonts->@* > 1) {
+        say "Select a size:";
 
-    my $selection = Term::Choose->new();
-    
-    my $id = $selection->choose( [ map { $_->id() } $fonts->@* ] );
+        my $selection = Term::Choose->new();
+        
+        my $id = $selection->choose( [ map { $_->id() } $fonts->@* ] );
 
-    $font = first { $_->id() eq $id } $fonts->@*;
-  }
+        $font = first { $_->id() eq $id } $fonts->@*;
+    }
 
-  $font //= $fonts->[0];
+    $font //= $fonts->[0];
 
-  $font->preview();
+    $font->preview();
 }
 
 sub test 
 {
-  package tests;
+    package tests;
 
-  use Test2::V0;
-  no warnings 'experimental::for_list';
+    use Test2::V0;
+    no warnings 'experimental::for_list';
 
-  subtest construction_Font => sub 
-  {
-    my %filenames = (
-        'UniCyr_8x14.psf.gz' => { name => 'UniCyr', size => '8x14'}, 
-        'ter-216b.psf.gz' => { name => 'ter', size => '216b'}, 
-        'lat7a-14.psfu.gz' => { name => 'lat7a', size => '14'}, 
-        'arm8.fnt.gz' => { name => 'arm8', size => undef},
-        'iso10.16.gz' => { name => 'iso10', size => '16', id => 'iso10.16'},
-    );
+    subtest construction_Font => sub 
+    {
+        my %filenames = (
+            'UniCyr_8x14.psf.gz' => { name => 'UniCyr', size => '8x14'}, 
+            'ter-216b.psf.gz' => { name => 'ter', size => '216b'}, 
+            'lat7a-14.psfu.gz' => { name => 'lat7a', size => '14'}, 
+            'arm8.fnt.gz' => { name => 'arm8', size => undef},
+            'iso10.16.gz' => { name => 'iso10', size => '16', id => 'iso10.16'},
+        );
 
-    for my ($filename, $expect) (%filenames)
-    {  
-      my $f = Font->new(filename => $filename);
+        for my ($filename, $expect) (%filenames)
+        {  
+            my $f = Font->new(filename => $filename);
 
-      is ( $f->name(), $expect->{name}, "got the right name" ) || diag $filename
-        if exists $expect->{name};
-      is ($f->size(), $expect->{size}, "got the right size") || diag $filename
-        if exists $expect->{size};
-      is ($f->id(), $expect->{id}, "got the right id") || diag $filename
-        if exists $expect->{id};
-    }
-  };
+            is ( $f->name(), $expect->{name}, "got the right name" ) || diag $filename
+                if exists $expect->{name};
+            is ($f->size(), $expect->{size}, "got the right size") || diag $filename
+                if exists $expect->{size};
+            is ($f->id(), $expect->{id}, "got the right id") || diag $filename
+                if exists $expect->{id};
+        }
+    };
 
-  done_testing();
+    done_testing();
 }
 
 do {
-  main()
+    main()
 } unless caller();
 
 1;
