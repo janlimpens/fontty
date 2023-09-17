@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-package fontpreview;
+package fontty;
 use v5.38;
 use feature 'class';
 use strict; use warnings;
@@ -83,6 +83,10 @@ my %actions = (
     sub => \&preview,
     description => 'cycles through all fonts'
   },
+  test => {
+    sub => \&test,
+    description => 'runs the test suite',
+  }
 );
 
 sub main 
@@ -150,38 +154,40 @@ sub preview
   $font->preview();
 }
 
-main();
-exit 1;
-# exit 1 unless caller();
-
-package tests;
-
-use Test2::V0;
-no warnings 'experimental::for_list';
-
-subtest construction_Font => sub 
+sub test 
 {
-  my %filenames = (
-      # '6x10-ISO8859-10.pcf.gz' => { name => '6x10-ISO8859', size => 10 },
-      # '5x8.pcf.gz' => { name => '5x8' },
-      # '5x7-KOI8-R.pcf.gz' => { name => '5x7-KOI8-R' },
-      # '6x13O-ISO8859-1.pcf.gz' => { name => '6x13O-ISO8859-1' },
-      'UniCyr_8x14.psf.gz' => { name => 'UniCyr', size => '8x14'}, 
-      'ter-216b.psf.gz' => { name => 'ter', size => '216b'}, 
-      'lat7a-14.psfu.gz' => { name => 'lat7a', size => '14'}, 
-      'arm8.fnt.g' => { name => 'arm8', size => undef},
-  );
+  package tests;
 
-  for my ($filename, $expect) (%filenames)
-  {  
-    my $f = Font->new(filename => $filename);
+  use Test2::V0;
+  no warnings 'experimental::for_list';
 
-    is ( $f->name(), $expect->{name}, 'got the right name' ) || diag $filename;
-    is ($f->size(), $expect->{size}, 'got the right size') || diag $filename;
-  }
-};
+  subtest construction_Font => sub 
+  {
+    my %filenames = (
+        # '6x10-ISO8859-10.pcf.gz' => { name => '6x10-ISO8859', size => 10 },
+        # '5x8.pcf.gz' => { name => '5x8' },
+        # '5x7-KOI8-R.pcf.gz' => { name => '5x7-KOI8-R' },
+        # '6x13O-ISO8859-1.pcf.gz' => { name => '6x13O-ISO8859-1' },
+        'UniCyr_8x14.psf.gz' => { name => 'UniCyr', size => '8x14'}, 
+        'ter-216b.psf.gz' => { name => 'ter', size => '216b'}, 
+        'lat7a-14.psfu.gz' => { name => 'lat7a', size => '14'}, 
+        'arm8.fnt.g' => { name => 'arm8', size => undef},
+    );
 
-done_testing();
+    for my ($filename, $expect) (%filenames)
+    {  
+      my $f = Font->new(filename => $filename);
 
+      is ( $f->name(), $expect->{name}, 'got the right name' ) || diag $filename;
+      is ($f->size(), $expect->{size}, 'got the right size') || diag $filename;
+    }
+  };
+
+  done_testing();
+}
+
+do {
+  main()
+} unless caller();
 
 1;
