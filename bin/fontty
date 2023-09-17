@@ -78,6 +78,9 @@ class Font {
   }
 }
 
+use Getopt::Long;
+use constant DEFAULT_PATH => '/usr/share/kbd/consolefonts';
+
 my %fonts; # is a hashsh $name => [Font]
 
 my %actions = (
@@ -101,9 +104,13 @@ my %actions = (
 
 sub main 
 { 
-  my $font_path = '/usr/share/kbd/consolefonts';
+  my $font_path = DEFAULT_PATH;
+  GetOptions('dir=s' => \$font_path);
 
   my @fonts = path($font_path)->children(qr/\.gz$/);
+
+  return say "No fonts found at $font_path" 
+    unless @fonts;
 
   for my $filename (@fonts) {
     my $font = Font->new(filename => $filename);
